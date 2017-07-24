@@ -403,7 +403,7 @@ def data_magic(data):
 
 def data_mimetype(data):
   result = Cigma().identify(data=data)
-  return result["magic"]["mimetype"] if result["magic"] else None
+  return result["match"]["mimetype"] if result["match"] else None
 
 
 def data_size(data):

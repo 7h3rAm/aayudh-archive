@@ -53,7 +53,7 @@ class FileMeta:
     self.report.filedirname = file_dirname(self.config.filename)
     self.report.filemimetype = file_mimetype(self.config.filename)
     magicresult = file_magic(self.config.filename)
-    self.report.filemagic = "%s (%s)" % (magicresult["magic"]["longname"], magicresult["magic"]["shortname"]) if magicresult["magic"] else None
+    self.report.filemagic = "%s (%s)" % (magicresult["match"]["longname"], magicresult["match"]["shortname"]) if magicresult["match"] else None
     self.report.hashes.crc32 = file_hashes(self.config.filename, 'crc32')
     self.report.hashes.md5 = file_hashes(self.config.filename, 'md5')
     self.report.hashes.sha1 = file_hashes(self.config.filename, 'sha1')

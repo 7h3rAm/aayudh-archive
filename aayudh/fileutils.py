@@ -125,7 +125,7 @@ def file_magic(filename):
 def file_mimetype(filename):
   if filename and filename != "":
     result = Cigma().identify(filename=filename)
-    return result["magic"]["mimetype"] if result["magic"] else None
+    return result["match"]["mimetype"] if result["match"] else None
     parser = createParser(unicodeFilename(filename), filename)
     return {"mimetype": str(parser.mime_type)} if parser else {"mimetype": "text/plain"}
 
