@@ -1,0 +1,16 @@
+$ git clone https://github.com/7h3rAm/aayudh.git
+$ cd aayudh
+$ sudo pip install -r requirements.txt
+# install below packages manually
+#
+# cigma (https://github.com/7h3rAm/cigma)
+# pillow (http://pillow.readthedocs.io/en/3.0.x/installation.html)
+# pydasm (https://github.com/jtpereyda/libdasm)
+# pydeep (https://github.com/kbandla/pydeep | http://ssdeep.sourceforge.net/#download)
+# pylibemu (https://github.com/buffer/pylibemu)
+# pynids (https://github.com/MITRECND/pynids)
+# pyexiftool (https://github.com/smarnach/pyexiftool)
+# team_cymru_api (https://github.com/blacktop/team-cymru-api)
+# shadow_server_api (https://github.com/blacktop/shadow-server-api)
+#
+$ sudo python setup.py install
