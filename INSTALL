@@ -12,5 +12,7 @@ $ sudo pip install -r requirements.txt
 # pyexiftool (https://github.com/smarnach/pyexiftool)
 # team_cymru_api (https://github.com/blacktop/team-cymru-api)
 # shadow_server_api (https://github.com/blacktop/shadow-server-api)
-#
+
+Please note that the hachoir_regex module is a dependency for hachoir_subfile module. It has been included in requirements.txt because installing hachoir_subfile doesn't autoinstall it. Thanks to @pentestit for reporting this missing dependency.
+
 $ sudo python setup.py install
