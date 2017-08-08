@@ -13,6 +13,8 @@ from nltk.chat import zen as zenbot
 
 import scanless.cli.main as scanless
 
+from ttp import ttp
+
 import cleverbot
 
 from PIL import Image, ImageDraw
@@ -904,6 +906,41 @@ def size_string(bytes, precision=1):
     if bytes >= factor:
       break
   return ("%.*f%s" % (precision, bytes / factor, suffix)).replace(".0", "")
+
+
+# python version of TallTweets' js implementation
+def split_twitter_text(text, maxchars=140):
+  def is_url(text):
+    return len(ttp.Parser().parse(text).urls) > 0
+  if (len(text) <= maxchars):
+    return list(text)
+  else:
+    # declare locals
+    chunks, words, cid = list(), text.split(' '), 0
+    # loop over all words
+    while (len(words)):
+      cid += 1
+      # add id to each chunk's start
+      chunk = "%d/" % (cid)
+      chunklen = len(chunk)
+      # t.co url's will be truncated to 23 chars and 2 for chunk id
+      maxurllen = 23 + 2
+      # calc length of next word, use twitter-text utils to check if next word is a url
+      nextchunklen = maxurllen if is_url(words[0]) else len(words[0]) + 1
+      # we can add more words to current chunk
+      while (len(words) > 0 and (chunklen + nextchunklen) <= maxchars):
+        # concatenate current word to current chunk
+        chunk = " ".join([chunk, words[0]])
+        chunklen += nextchunklen
+        # remove current word from list
+        words = words[1:]
+        # prepare for next iteration of loop
+        if (len(words) > 0):
+          nextchunklen = maxurllen if is_url(words[0]) else len(words[0]) + 1
+      # got upto 140 chars in the current chunk, add to chunks list and move on
+      chunks.append(chunk)
+  # done with all words, got all chunks, return
+  return chunks
 
 
 def truncate_message(content, length=177, sep=" "):
