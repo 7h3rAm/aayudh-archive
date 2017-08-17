@@ -798,6 +798,14 @@ def kilometer_to_mile(kms):
   return (kms / 1.609)
 
 
+def list_common(lista, listb):
+  return list(set(lista) & set(listb))
+
+
+def list_uncommon(lista, listb):
+  return list(set(lista) ^ set(listb))
+
+
 def mile_to_kilometer(miles):
   return (miles * 1.609)
 
