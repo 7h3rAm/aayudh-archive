@@ -196,7 +196,7 @@ def file_subfiles(filename):
         subfile.current_offset = min(subfile.current_offset, subfile.size)
     except MemoryError:
       error("[!] Memory error!")
-    return subfiles
+    return subfiles if subfiles and len(subfiles) else None
 
 
 # http://stackoverflow.com/questions/2186525/use-a-glob-to-find-files-recursively-in-python
