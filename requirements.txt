@@ -2,6 +2,7 @@ beautifulsoup4==4.6.0
 bitstring==3.1.5
 bottlenose==1.1.2
 cleverbot==1.0.0
+coinbase==2.0.6
 dpkt_fix==1.7
 exrex==0.9.4
 facebook==0.0

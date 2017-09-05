@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import json
+import arrow
 import random
 import shodan
 import struct
@@ -22,6 +23,7 @@ from pprint import pprint
 from pytz import timezone
 import xml.etree.ElementTree
 from howdoi import howdoi as hdi
+from coinbase.wallet.client import Client
 
 import bottlenose
 from bs4 import BeautifulSoup
@@ -226,6 +228,270 @@ def circllu_cvesearch(vendorproduct="Adobe Reader", maxcves=0):
     return utils.objdict({
       "success": False,
       "reason": "Expected HTTP status code 200 but got %d instead" % (res.status_code)
+    })
+  except Exception as ex:
+    return utils.objdict({
+      "success": False,
+      "exception": ex
+    })
+
+
+def coinbase_account():
+  try:
+    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
+    reply = client.get_accounts()
+    accounts, totalnativebalance, nativecurrency = list(), 0, None
+    for account in reply.data:
+      totalnativebalance += float(account.native_balance.amount)
+      nativecurrency = account.native_balance.currency if account.native_balance.currency else "USD"
+      accounts.append(utils.objdict({
+        "name": account.name,
+        "accountid": account.id,
+        "createdat": utils.datestring_to_dateobject(account.created_at),
+        "createdathuman": arrow.get(account.created_at).humanize(),
+        "currency": account.currency,
+        "balance": account.balance.amount,
+        "balancehuman": "%s %s" % (account.balance.amount, account.balance.currency),
+        "nativebalance": account.native_balance.amount,
+        "nativebalancehuman": "%s %s" % (account.native_balance.amount, account.native_balance.currency),
+        "accounttype": account.type,
+      }))
+    if len(accounts):
+      return utils.objdict({
+        "success": True,
+        "accounts": accounts,
+        "currentbalance": totalnativebalance,
+        "currentbalancehuman": "%.2f %s" % (totalnativebalance, nativecurrency)
+      })
+    return utils.objdict({
+      "success": False,
+      "reason": "Found 0 accounts on Coinbase"
+    })
+  except Exception as ex:
+    import traceback
+    traceback.print_exc()
+    return utils.objdict({
+      "success": False,
+      "exception": ex
+    })
+
+
+def coinbase_forex():
+  try:
+    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
+    reply = client.get_exchange_rates()
+    btcrate = (1.0-float(reply.rates.BTC))/float(reply.rates.BTC)
+    ethrate = (1.0-float(reply.rates.ETH))/float(reply.rates.ETH)
+    ltcrate = (1.0-float(reply.rates.LTC))/float(reply.rates.LTC)
+    return utils.objdict({
+      "success": True,
+      "usdrates": utils.objdict({
+        "btc": btcrate,
+        "btchuman": "1 BTC ≈ %.2f USD" % (btcrate),
+        "eth": ethrate,
+        "ethhuman": "1 ETH ≈ %.2f USD" % (ethrate),
+        "ltc": ltcrate,
+        "ltchuman": "1 LTC ≈ %.2f USD" % (ltcrate)
+      })
+    })
+  except Exception as ex:
+    return utils.objdict({
+      "success": False,
+      "exception": ex
+    })
+
+
+def coinbase_portfolio():
+  try:
+    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
+    reply = client.get_accounts()
+    stats = utils.objdict({
+      "currentbalance": 0,
+      "currentbalancehuman": None,
+      "buys": utils.objdict({
+        "btcamount": 0.0,
+        "btcamounthuman": None,
+        "ethamount": 0.0,
+        "ethamounthuman": None,
+        "ltcamount": 0.0,
+        "ltcamounthuman": None,
+        "fee": 0.0,
+        "feehuman": None,
+        "total": 0.0,
+        "totalhuman": None,
+        "subtotal": 0.0,
+        "subtotalhuman": None
+      }),
+      "sells": utils.objdict({
+        "btcamount": 0.0,
+        "btcamounthuman": None,
+        "ethamount": 0.0,
+        "ethamounthuman": None,
+        "ltcamount": 0.0,
+        "ltcamounthuman": None,
+        "fee": 0.0,
+        "feehuman": None,
+        "total": 0.0,
+        "totalhuman": None,
+        "subtotal": 0.0,
+        "subtotalhuman": None
+      }),
+      "deposits": utils.objdict({
+        "amount": 0.0,
+        "amounthuman": None,
+        "fee": 0.0,
+        "feehuman": None,
+        "subtotal": 0.0,
+        "subtotalhuman": None
+      }),
+      "withdrawals": utils.objdict({
+        "amount": 0.0,
+        "amounthuman": None,
+        "fee": 0.0,
+        "feehuman": None,
+        "subtotal": 0.0,
+        "subtotalhuman": None
+      }),
+    })
+    totalnativebalance, nativecurrency = 0, None
+    for account in reply.data:
+      totalnativebalance += float(account.native_balance.amount)
+      nativecurrency = account.native_balance.currency if account.native_balance.currency else "USD"
+      if "vault" in account.name.lower():
+        continue
+      buys = account.get_buys()
+      for buy in buys.data:
+        if buy.amount.currency == "BTC":
+          stats.buys.btcamount += float(buy.amount.amount)
+        elif buy.amount.currency == "ETH":
+          stats.buys.ethamount += float(buy.amount.amount)
+        elif buy.amount.currency == "LTC":
+          stats.buys.ltcamount += float(buy.amount.amount)
+        stats.buys.total += float(buy.total.amount)
+        stats.buys.subtotal += float(buy.subtotal.amount)
+      sells = account.get_sells()
+      for sell in sells.data:
+        if sell.amount.currency == "BTC":
+          stats.sell.btcamount += float(sell.amount.amount)
+        elif sell.amount.currency == "ETH":
+          stats.sell.ethamount += float(sell.amount.amount)
+        elif sell.amount.currency == "LTC":
+          stats.sell.ltcamount += float(sell.amount.amount)
+        stats.sell.total += float(sell.total.amount)
+        stats.sell.subtotal += float(sell.subtotal.amount)
+      deposits = account.get_deposits()
+      for deposit in deposits.data:
+        stats.deposit.amount += float(deposit.amount.amount)
+        stats.deposit.subtotal += float(deposit.subtotal.amount)
+      withdrawals = account.get_withdrawals()
+      for withdrawal in withdrawals.data:
+        stats.withdrawal.amount += float(withdrawal.amount.amount)
+        stats.withdrawal.subtotal += float(withdrawal.subtotal.amount)
+    stats.buys.btcamounthuman = "%s BTC" % (stats.buys.btcamount)
+    stats.buys.ethamounthuman = "%s ETH" % (stats.buys.ethamount)
+    stats.buys.ltcamounthuman = "%s LTC" % (stats.buys.ltcamount)
+    stats.buys.fee = stats.buys.total - stats.buys.subtotal
+    stats.buys.feehuman = "%s USD" % (stats.buys.fee)
+    stats.buys.totalhuman = "%s USD" % (stats.buys.total)
+    stats.buys.subtotalhuman = "%s USD" % (stats.buys.subtotal)
+    stats.sells.btcamounthuman = "%s BTC" % (stats.sells.btcamount)
+    stats.sells.ethamounthuman = "%s ETH" % (stats.sells.ethamount)
+    stats.sells.ltcamounthuman = "%s LTC" % (stats.sells.ltcamount)
+    stats.sells.fee = stats.sells.total - stats.sells.subtotal
+    stats.sells.feehuman = "%s USD" % (stats.sells.fee)
+    stats.sells.totalhuman = "%s USD" % (stats.sells.total)
+    stats.sells.subtotalhuman = "%s USD" % (stats.sells.subtotal)
+    stats.deposits.amounthuman = "%s BTC" % (stats.deposits.amount)
+    stats.deposits.feehuman = "%s USD" % (stats.deposits.fee)
+    stats.deposits.subtotalhuman = "%s USD" % (stats.deposits.subtotal)
+    stats.withdrawals.amounthuman = "%s BTC" % (stats.withdrawals.amount)
+    stats.withdrawals.feehuman = "%s USD" % (stats.withdrawals.fee)
+    stats.withdrawals.subtotalhuman = "%s USD" % (stats.withdrawals.subtotal)
+    stats.currentbalance = totalnativebalance
+    stats.currentbalancehuman = "%s %s" % (totalnativebalance, nativecurrency)
+    stats.portfolio = utils.objdict({
+      "amount": stats.buys.total,
+      "amounthuman": "%.2f USD" % (stats.buys.total),
+      "fee": stats.buys.fee,
+      "feehuman": "%.2f USD" % (stats.buys.fee),
+      "feeper": ((stats.buys.fee/stats.buys.total)*100),
+      "feeperhuman": "%.2f%%" % (((stats.buys.fee/stats.buys.total)*100)),
+      "investment": stats.buys.subtotal,
+      "investmenthuman": "%.2f USD" % (stats.buys.subtotal),
+      "valuation": stats.currentbalance,
+      "valuationhuman": "%.2f USD" % (stats.currentbalance),
+      "delta": ((stats.currentbalance - stats.buys.subtotal)/stats.buys.subtotal)*100,
+      "deltahuman": "%.2f%%" % (((stats.currentbalance - stats.buys.subtotal)/stats.buys.subtotal)*100)
+    })
+    if len(reply.data):
+      return utils.objdict({
+        "success": True,
+        "stats": stats,
+      })
+    return utils.objdict({
+      "success": False,
+      "reason": "Found 0 accounts on Coinbase"
+    })
+  except Exception as ex:
+    import traceback
+    traceback.print_exc()
+    return utils.objdict({
+      "success": False,
+      "exception": ex
+    })
+
+
+def coinbase_price():
+  try:
+    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
+    buyprice = client.get_buy_price()
+    sellprice = client.get_sell_price()
+    spotprice = client.get_spot_price()
+    return utils.objdict({
+      "success": True,
+      "price": utils.objdict({
+        "buy": utils.objdict({
+          "basecurrency": buyprice.base,
+          "amountcurrency": buyprice.currency,
+          "amount": buyprice.amount,
+          "amounthuman": "1 %s ≈ %s %s" % (buyprice.base, buyprice.amount, buyprice.currency)
+        }),
+        "sell": utils.objdict({
+          "basecurrency": sellprice.base,
+          "amountcurrency": sellprice.currency,
+          "amount": sellprice.amount,
+          "amounthuman": "1 %s ≈ %s %s" % (sellprice.base, sellprice.amount, sellprice.currency)
+        }),
+        "spot": utils.objdict({
+          "basecurrency": spotprice.base,
+          "amountcurrency": spotprice.currency,
+          "amount": spotprice.amount,
+          "amounthuman": "1 %s ≈ %s %s" % (spotprice.base, spotprice.amount, spotprice.currency)
+        })
+      })
+    })
+  except Exception as ex:
+    return utils.objdict({
+      "success": False,
+      "exception": ex
+    })
+
+
+def coinbase_user():
+  try:
+    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
+    reply = client.get_current_user()
+    return utils.objdict({
+      "success": True,
+      "bitcoinunit": reply.bitcoin_unit,
+      "country": reply.country.code,
+      "state": reply.state,
+      "name": reply.name,
+      "userid": reply.id,
+      "createdat": utils.datestring_to_dateobject(reply.created_at),
+      "createdathuman": arrow.get(reply.created_at).humanize(),
+      "currency": reply.native_currency,
+      "timezone": reply.time_zone
     })
   except Exception as ex:
     return utils.objdict({

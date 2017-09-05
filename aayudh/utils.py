@@ -470,6 +470,10 @@ def data_to_pngimage(data, width=256, maxsize=180000, enable_colors=True):
   return pngimage.getvalue()
 
 
+def datestring_to_dateobject(datestring):
+  return datetime.datetime.strptime(datestring, "%Y-%m-%dT%H:%M:%SZ").strftime("%H:%M:%S %d/%b/%Y")
+
+
 # http://stackoverflow.com/questions/26496831/how-to-convert-defaultdict-of-defaultdicts-of-defaultdicts-to-dict-of-dicts-o
 def dict_default_to_regular(d):
   if isinstance(d, collections.defaultdict):
