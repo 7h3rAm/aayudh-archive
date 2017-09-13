@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import json
+import time
 import arrow
 import random
 import shodan
@@ -22,6 +23,7 @@ from lxml import html
 from pprint import pprint
 from pytz import timezone
 import xml.etree.ElementTree
+from urllib2 import HTTPError
 from howdoi import howdoi as hdi
 from coinbase.wallet.client import Client
 
@@ -49,23 +51,35 @@ def amazon(query=None, limit=5):
       "success": False,
       "usage": "<query>"
     })
-  amazon = bottlenose.Amazon(keys.get("apikeys", "amazon_access"), keys.get("apikeys", "amazon_secret"), keys.get("apikeys", "amazon_associate"), Parser=BeautifulSoup)
-  #search = amazon.ItemSearch(Keywords="Kindle 3G", SearchIndex="All")
-  #lookup = amazon.ItemLookup(ItemId="0596520999", ResponseGroup="Images", SearchIndex="Books", IdType="ISBN")
+
+  def error_handler(err):
+    ex = err["exception"]
+    if isinstance(ex, HTTPError) and ex.code == 503:
+      time.sleep(random.expovariate(0.1))
+      return True
+
+  amazon = bottlenose.Amazon(keys.get("apikeys", "amazon_access"), keys.get("apikeys", "amazon_secret"), keys.get("apikeys", "amazon_associate"), Parser=lambda text: BeautifulSoup(text, "html.parser"), ErrorHandler=error_handler)
   try:
     xml = amazon.ItemSearch(Keywords=query, SearchIndex="All")
-    products = xml.find_all("item")[:limit]
+    items = xml.find_all("item")[:limit]
     reply = list()
-    for product in products:
-      item = amazon.ItemLookup(ItemId=product.asin.string, ResponseGroup="Offers", MerchantId="All")
+    for item in items:
       try:
-        price = item.find("formattedprice").string
-        url = product.detailpageurl.string
-        title = product.itemattributes.title.string
-        manufacturer = product.itemattributes.manufacturer.string
+        url = item.detailpageurl.text
+        title = item.itemattributes.title.text
+        manufacturer = item.itemattributes.manufacturer.text
+        offerfull = amazon.ItemLookup(ItemId=item.asin.text, ResponseGroup="OfferFull")
+        offersummary = offerfull.find_all("offersummary")[:limit]
+        lowestnewprice = offersummary[0].lowestnewprice.formattedprice.text if offersummary[0] and offersummary[0].lowestnewprice else "NA"
+        lowestusedprice = offersummary[0].lowestusedprice.formattedprice.text if offersummary[0] and offersummary[0].lowestusedprice else "NA"
+        totalnew = offersummary[0].totalnew.text if offersummary[0] and offersummary[0].totalnew else 0
+        totalused = offersummary[0].totalused.text if offersummary[0] and offersummary[0].totalused else 0
         reply.append(utils.objdict({
           "name": title,
-          "price": price,
+          "lowestnewprice": lowestnewprice,
+          "lowestusedprice": lowestusedprice,
+          "totalnew": int(totalnew),
+          "totalused": int(totalused),
           "url": url,
           "vendor": manufacturer
         }))
@@ -74,7 +88,8 @@ def amazon(query=None, limit=5):
     if len(reply):
       return utils.objdict({
         "success": True,
-        "searchlink": xml.items.moresearchresultsurl.string,
+        "searchlink": xml.items.moresearchresultsurl.text,
+        "totalresults": int(xml.find("totalresults").text),
         "products": reply
       })
     else:
