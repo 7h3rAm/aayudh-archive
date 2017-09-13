@@ -1696,7 +1696,7 @@ def google_finance_currency(a, f, t):
     "a": a
   }
   try:
-    res = requests.get("https://www.google.com/finance/converter", headers=customheaders, params=params, verify=False)
+    res = requests.get("https://finance.google.com/finance/converter", headers=customheaders, params=params, verify=False)
     if res.status_code == 200:
       result = re.search(r"<span class=bld>([^ ]+)", res.content)
       if result:
