@@ -2047,11 +2047,9 @@ def google_nearby(location=None, keyword=None, radius=10, limit=5):
           })
       return utils.objdict({
         "success": False,
-        "reason": "Expected HTTP status code 200 but got %d instead" % (res.status_code)
+        "reason": "Expected HTTP status code 200 but got %d instead" % (nres.status_code)
       })
     except Exception as ex:
-      import traceback
-      traceback.print_exc()
       return utils.objdict({
         "success": False,
         "exception": ex
