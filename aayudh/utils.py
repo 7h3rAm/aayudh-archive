@@ -181,6 +181,7 @@ def set_prompt(ps1="(prompt) ", ps2="... "):
 
 
 def bin2ascii(binstr):
+  #"".join([chr(int("0b%s" % x, 2)) for x in binstr.split()])
   return binascii.unhexlify('%x' % int(binstr, 2))
 
 

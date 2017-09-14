@@ -448,8 +448,6 @@ def coinbase_portfolio():
       "reason": "Found 0 accounts on Coinbase"
     })
   except Exception as ex:
-    import traceback
-    traceback.print_exc()
     return utils.objdict({
       "success": False,
       "exception": ex
@@ -457,32 +455,88 @@ def coinbase_portfolio():
 
 
 def coinbase_price():
+  def cbreq(url):
+    customheaders = {
+      "User-Agent": "Some script trying to be nice :)"
+    }
+    try:
+      res = requests.get(url, headers=customheaders, verify=False)
+      if res.status_code == 200:
+        return json.loads(res.content)
+      return None
+    except Exception as ex:
+      return None
   try:
-    client = Client(keys.get("apikeys", "coinbasekey"), keys.get("apikeys", "coinbasesecret"))
-    buyprice = client.get_buy_price()
-    sellprice = client.get_sell_price()
-    spotprice = client.get_spot_price()
+    btcbuyprice = cbreq("https://api.coinbase.com/v2/prices/BTC-USD/buy")
+    btcsellprice = cbreq("https://api.coinbase.com/v2/prices/BTC-USD/sell")
+    btcspotprice = cbreq("https://api.coinbase.com/v2/prices/BTC-USD/spot")
+    ethbuyprice = cbreq("https://api.coinbase.com/v2/prices/ETH-USD/buy")
+    ethsellprice = cbreq("https://api.coinbase.com/v2/prices/ETH-USD/sell")
+    ethspotprice = cbreq("https://api.coinbase.com/v2/prices/ETH-USD/spot")
+    ltcbuyprice = cbreq("https://api.coinbase.com/v2/prices/LTC-USD/buy")
+    ltcsellprice = cbreq("https://api.coinbase.com/v2/prices/LTC-USD/sell")
+    ltcspotprice = cbreq("https://api.coinbase.com/v2/prices/LTC-USD/spot")
     return utils.objdict({
       "success": True,
-      "price": utils.objdict({
+      "btcprice": utils.objdict({
         "buy": utils.objdict({
-          "basecurrency": buyprice.base,
-          "amountcurrency": buyprice.currency,
-          "amount": buyprice.amount,
-          "amounthuman": "1 %s ≈ %s %s" % (buyprice.base, buyprice.amount, buyprice.currency)
-        }),
+          "basecurrency": btcbuyprice["data"]["base"],
+          "amountcurrency": btcbuyprice["data"]["currency"],
+          "amount": btcbuyprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (btcbuyprice["data"]["base"], btcbuyprice["data"]["amount"], btcbuyprice["data"]["currency"])
+        }) if btcbuyprice else None,
         "sell": utils.objdict({
-          "basecurrency": sellprice.base,
-          "amountcurrency": sellprice.currency,
-          "amount": sellprice.amount,
-          "amounthuman": "1 %s ≈ %s %s" % (sellprice.base, sellprice.amount, sellprice.currency)
-        }),
+          "basecurrency": btcsellprice["data"]["base"],
+          "amountcurrency": btcsellprice["data"]["currency"],
+          "amount": btcsellprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (btcsellprice["data"]["base"], btcsellprice["data"]["amount"], btcsellprice["data"]["currency"])
+        }) if btcsellprice else None,
         "spot": utils.objdict({
-          "basecurrency": spotprice.base,
-          "amountcurrency": spotprice.currency,
-          "amount": spotprice.amount,
-          "amounthuman": "1 %s ≈ %s %s" % (spotprice.base, spotprice.amount, spotprice.currency)
-        })
+          "basecurrency": btcspotprice["data"]["base"],
+          "amountcurrency": btcspotprice["data"]["currency"],
+          "amount": btcspotprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (btcspotprice["data"]["base"], btcspotprice["data"]["amount"], btcspotprice["data"]["currency"])
+        }) if btcspotprice else None
+      }),
+      "ethprice": utils.objdict({
+        "buy": utils.objdict({
+          "basecurrency": ethbuyprice["data"]["base"],
+          "amountcurrency": ethbuyprice["data"]["currency"],
+          "amount": ethbuyprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ethbuyprice["data"]["base"], ethbuyprice["data"]["amount"], ethbuyprice["data"]["currency"])
+        }) if ethbuyprice else None,
+        "sell": utils.objdict({
+          "basecurrency": ethsellprice["data"]["base"],
+          "amountcurrency": ethsellprice["data"]["currency"],
+          "amount": ethsellprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ethsellprice["data"]["base"], ethsellprice["data"]["amount"], ethsellprice["data"]["currency"])
+        }) if ethsellprice else None,
+        "spot": utils.objdict({
+          "basecurrency": ethspotprice["data"]["base"],
+          "amountcurrency": ethspotprice["data"]["currency"],
+          "amount": ethspotprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ethspotprice["data"]["base"], ethspotprice["data"]["amount"], ethspotprice["data"]["currency"])
+        }) if ethspotprice else None
+      }),
+      "ltcprice": utils.objdict({
+        "buy": utils.objdict({
+          "basecurrency": ltcbuyprice["data"]["base"],
+          "amountcurrency": ltcbuyprice["data"]["currency"],
+          "amount": ltcbuyprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ltcbuyprice["data"]["base"], ltcbuyprice["data"]["amount"], ltcbuyprice["data"]["currency"])
+        }) if ltcbuyprice else None,
+        "sell": utils.objdict({
+          "basecurrency": ltcsellprice["data"]["base"],
+          "amountcurrency": ltcsellprice["data"]["currency"],
+          "amount": ltcsellprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ltcsellprice["data"]["base"], ltcsellprice["data"]["amount"], ltcsellprice["data"]["currency"])
+        }) if ltcsellprice else None,
+        "spot": utils.objdict({
+          "basecurrency": ltcspotprice["data"]["base"],
+          "amountcurrency": ltcspotprice["data"]["currency"],
+          "amount": ltcspotprice["data"]["amount"],
+          "amounthuman": "1 %s ≈ %s %s" % (ltcspotprice["data"]["base"], ltcspotprice["data"]["amount"], ltcspotprice["data"]["currency"])
+        }) if ltcspotprice else None
       })
     })
   except Exception as ex:
