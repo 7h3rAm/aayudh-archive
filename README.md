@@ -1,3 +1,3 @@
 # Aayudh
 
-The weaponary you need in your fight against evil.
+The weaponry you need in your fight against evil.
